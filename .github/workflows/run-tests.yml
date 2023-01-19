@@ -17,7 +17,7 @@ jobs:
         with:
           go-version: 'stable'
       - name: Check-out https://github.com/BurntSushi/toml-test
-        run: git clone https://github.com/BurntSushi/toml-test
+        run: git clone https://github.com/BurntSushi/toml-test.git
       - name: Build toml-test
         working-directory: toml-test
         run: go build ./cmd/toml-test
@@ -26,3 +26,26 @@ jobs:
         with:
           name: toml-test
           path: toml-test/toml-test
+          retention-days: 5
+
+  test-burntsushi-toml:
+    runs-on: ubuntu-latest
+    needs: build-toml-test
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 'stable'
+      - uses: actions/download-artifact@v3
+        with:
+          name: toml-test
+      - name: Prepare toml-test executable
+        run: chmod a+x ./toml-test
+      - name: Display structure of downloaded files
+        run: ls -lR
+      - name: Check-out https://github.com/BurntSushi/toml
+        run: git clone https://github.com/BurntSushi/toml.git burntsushi-toml
+      - name: Build TOML decoder
+        working-directory: burntsushi-toml
+        run: go build ./cmd/toml-test-decoder
+      - name: Test TOML decoder
+        run: ./toml-test -toml 1.0.0 burntsushi-toml/toml-test-decoder
