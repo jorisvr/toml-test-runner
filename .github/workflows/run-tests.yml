@@ -29,7 +29,7 @@ jobs:
         with:
           name: toml-test
           path: toml-test/toml-test
-          retention-days: 5
+          retention-days: 2
 
   test-burntsushi-toml:
     runs-on: ubuntu-latest
@@ -51,8 +51,17 @@ jobs:
         run: go build ./cmd/toml-test-decoder
       - name: Test toml decoder
         run: |
+          echo "Project: https://github.com/BurntSushi/toml" >> logfile
+          echo "Version: commit $(cd burntsushi-toml; git rev-parse --short HEAD)" >> logfile
           chmod a+x ./toml-test
-          ./toml-test -toml 1.0.0 burntsushi-toml/toml-test-decoder
+          ./toml-test -toml 1.0.0 burntsushi-toml/toml-test-decoder | tee -a logfile && [ $PIPESTATUS -eq 0 ]
+      - name: Upload artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: log-burntsushi-toml
+          path: logfile
+          retention-days: 2
 
   test-python311-tomllib:
     runs-on: ubuntu-latest
@@ -67,10 +76,19 @@ jobs:
           name: toml-test
       - name: Show Python version
         run: python --version
-      - name: Test tomllib decoder
+      - name: Test toml decoder
         run: |
+          echo "Project: Python tomllib" >> logfile
+          echo "Version: $(python --version)" >> logfile
           chmod a+x ./toml-test
-          ./toml-test -toml 1.0.0 python/tomllib-decoder.py
+          ./toml-test -toml 1.0.0 python/tomllib-decoder.py | tee -a logfile && [ $PIPESTATUS -eq 0 ]
+      - name: Upload artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: log-python311-tomllib
+          path: logfile
+          retention-days: 2
 
   test-marzer-tomlplusplus:
     runs-on: ubuntu-latest
@@ -89,8 +107,17 @@ jobs:
         run: g++ -Iinclude -Wall -Wextra -Wpedantic -Werror -std=c++17 -O2 -fsanitize=undefined -fsanitize=address -o tt_decoder toml-test/tt_decoder.cpp
       - name: Test toml decoder
         run: |
+          echo "Project: https://github.com/marzer/tomlplusplus" >> logfile
+          echo "Version: commit $(cd tomlplusplus; git rev-parse --short HEAD)" >> logfile
           chmod a+x ./toml-test
-          ./toml-test -toml 1.0.0 tomlplusplus/tt_decoder
+          ./toml-test -toml 1.0.0 tomlplusplus/tt_decoder | tee -a logfile && [ $PIPESTATUS -eq 0 ]
+      - name: Upload artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: log-marzer-tomlplusplus
+          path: logfile
+          retention-days: 2
 
   test-toml-rs:
     runs-on: ubuntu-latest
@@ -121,5 +148,24 @@ jobs:
         run: cargo build
       - name: Test toml decoder
         run: |
+          echo "Project: https://crates.io/crates/toml" >> logfile
+          echo "Version: $(cd rust/toml-rs-decoder; cargo tree --package toml --depth 0 | cut "-d " -f2)" >> logfile
           chmod a+x ./toml-test
-          ./toml-test -toml 1.0.0 rust/toml-rs-decoder/target/debug/toml-rs-decoder
+          ./toml-test -toml 1.0.0 rust/toml-rs-decoder/target/debug/toml-rs-decoder | tee -a logfile && [ $PIPESTATUS -eq 0 ]
+      - name: Upload artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: log-toml-rs
+          path: logfile
+          retention-days: 2
+
+  make-summary:
+    runs-on: ubuntu-latest
+    needs: [test-burntsushi-toml, test-python311-tomllib, test-marzer-tomlplusplus, test-toml-rs]
+    if: success() || failure()
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+      - name: Summarize tests
+        run: python3 tool/summarize_test.py log-*/logfile | tee $GITHUB_STEP_SUMMARY
