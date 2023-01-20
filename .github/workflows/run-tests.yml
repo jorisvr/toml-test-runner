@@ -97,8 +97,10 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: toml-test
+      - name: Query latest release
+        run: echo "version_tag=$(tools/github-latest-release.py marzer/tomlplusplus)" >> $GITHUB_ENV
       - name: Check-out https://github.com/marzer/tomlplusplus
-        run: git clone https://github.com/marzer/tomlplusplus.git
+        run: git clone --branch "$version_tag" https://github.com/marzer/tomlplusplus.git
       - name: Show version
         working-directory: tomlplusplus
         run: git describe --tags --always
@@ -108,7 +110,7 @@ jobs:
       - name: Test toml decoder
         run: |
           echo "Project: https://github.com/marzer/tomlplusplus" >> logfile
-          echo "Version: $(cd tomlplusplus; git rev-parse --short HEAD)" >> logfile
+          echo "Version: ${version_tag}" >> logfile
           tools/toml-test-wrapper.sh -toml 1.0.0 tomlplusplus/tt_decoder
       - name: Upload artifact
         if: success() || failure()
@@ -166,4 +168,4 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
       - name: Summarize tests
-        run: python3 tools/summarize_test.py log-*/logfile | tee $GITHUB_STEP_SUMMARY
+        run: python3 tools/summarize_test.py log-*/logfile | tee -a $GITHUB_STEP_SUMMARY
