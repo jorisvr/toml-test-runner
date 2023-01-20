@@ -15,7 +15,7 @@ def analyze_logfile(file_name):
     num_valid_failed = 0
     num_invalid_failed = 0
 
-    with open(file_name, "r") as f:
+    with open(file_name, "r", encoding="utf-8", errors="replace") as f:
         for line in f:
 
             m = re.match(r"^Project: (.*)$", line)
