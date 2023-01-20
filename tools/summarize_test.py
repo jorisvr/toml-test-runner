@@ -47,8 +47,8 @@ def analyze_logfile(file_name):
 
 def write_summary(log_info):
 
-    print("| Project | Version | # passed | # valid failed | # invalid failed | Result |")
-    print("|---------|---------|----------------|----------------------|------------------------|--------|")
+    print("| TOML parser | Version | # passed | # valid failed | # invalid failed | Result |")
+    print("|-------------|---------|----------------|----------------------|------------------------|--------|")
 
     for test_info in log_info:
         write_test_summary(test_info)

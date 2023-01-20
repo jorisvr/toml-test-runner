@@ -35,6 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-toml-test
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
         with:
           go-version: 'stable'
@@ -52,9 +53,8 @@ jobs:
       - name: Test toml decoder
         run: |
           echo "Project: https://github.com/BurntSushi/toml" >> logfile
-          echo "Version: commit $(cd burntsushi-toml; git rev-parse --short HEAD)" >> logfile
-          chmod a+x ./toml-test
-          ./toml-test -toml 1.0.0 burntsushi-toml/toml-test-decoder | tee -a logfile && [ $PIPESTATUS -eq 0 ]
+          echo "Version: $(cd burntsushi-toml; git rev-parse --short HEAD)" >> logfile
+          tools/toml-test-wrapper.sh -toml 1.0.0 burntsushi-toml/toml-test-decoder
       - name: Upload artifact
         if: success() || failure()
         uses: actions/upload-artifact@v3
@@ -80,8 +80,7 @@ jobs:
         run: |
           echo "Project: Python tomllib" >> logfile
           echo "Version: $(python --version)" >> logfile
-          chmod a+x ./toml-test
-          ./toml-test -toml 1.0.0 python/tomllib-decoder.py | tee -a logfile && [ $PIPESTATUS -eq 0 ]
+          tools/toml-test-wrapper.sh -toml 1.0.0 python/tomllib-decoder.py
       - name: Upload artifact
         if: success() || failure()
         uses: actions/upload-artifact@v3
@@ -94,6 +93,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-toml-test
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
           name: toml-test
@@ -108,9 +108,8 @@ jobs:
       - name: Test toml decoder
         run: |
           echo "Project: https://github.com/marzer/tomlplusplus" >> logfile
-          echo "Version: commit $(cd tomlplusplus; git rev-parse --short HEAD)" >> logfile
-          chmod a+x ./toml-test
-          ./toml-test -toml 1.0.0 tomlplusplus/tt_decoder | tee -a logfile && [ $PIPESTATUS -eq 0 ]
+          echo "Version: $(cd tomlplusplus; git rev-parse --short HEAD)" >> logfile
+          tools/toml-test-wrapper.sh -toml 1.0.0 tomlplusplus/tt_decoder
       - name: Upload artifact
         if: success() || failure()
         uses: actions/upload-artifact@v3
@@ -150,8 +149,7 @@ jobs:
         run: |
           echo "Project: https://crates.io/crates/toml" >> logfile
           echo "Version: $(cd rust/toml-rs-decoder; cargo tree --package toml --depth 0 | cut "-d " -f2)" >> logfile
-          chmod a+x ./toml-test
-          ./toml-test -toml 1.0.0 rust/toml-rs-decoder/target/debug/toml-rs-decoder | tee -a logfile && [ $PIPESTATUS -eq 0 ]
+          tools/toml-test-wrapper.sh -toml 1.0.0 rust/toml-rs-decoder/target/debug/toml-rs-decoder
       - name: Upload artifact
         if: success() || failure()
         uses: actions/upload-artifact@v3
@@ -168,4 +166,4 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
       - name: Summarize tests
-        run: python3 tool/summarize_test.py log-*/logfile | tee $GITHUB_STEP_SUMMARY
+        run: python3 tools/summarize_test.py log-*/logfile | tee $GITHUB_STEP_SUMMARY
