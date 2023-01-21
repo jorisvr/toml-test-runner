@@ -181,7 +181,6 @@ jobs:
           path: logfile
           retention-days: 2
 
-# TODO: build from latest commit
   test-toml-rs:
     runs-on: ubuntu-latest
     needs: build-toml-test
@@ -196,23 +195,29 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: toml-test
-      - name: Update cargo dependencies
-        working-directory: rust/toml-rs-decoder
-        run: |
-          cargo update
-          cargo fetch
+      - name: Check-out https://github.com/toml-rs/toml
+        run: git clone https://github.com/toml-rs/toml.git toml-rs
       - name: Show version
+        working-directory: toml-rs
+        run: |
+          git log -1 --format='%h'
+          echo "parser_version=$(git log -1 --format='%h')" >> $GITHUB_ENV
+      - name: Patch cargo file
         working-directory: rust/toml-rs-decoder
         run: |
-          cargo version
-          cargo tree
-          echo "parser_version=$(cargo tree --package toml --depth 0 | cut '-d ' -f2)" >> $GITHUB_ENV
+          echo '[patch.crates-io]' >> Cargo.toml
+          echo 'toml = { path = "../../toml-rs/crates/toml" }' >> Cargo.toml
       - name: Build toml decoder
         working-directory: rust/toml-rs-decoder
         run: cargo build
+      - name: Show version
+        working-directory: toml-rs
+        run: |
+          cargo version
+          cargo tree
       - name: Test toml decoder
         run: |
-          echo "Project: https://crates.io/crates/toml" >> logfile
+          echo "Project: https://github.com/toml-rs/toml" >> logfile
           echo "Version: ${parser_version}" >> logfile
           tools/toml-test-wrapper.sh -toml 1.0.0 rust/toml-rs-decoder/target/debug/toml-rs-decoder
       - name: Upload artifact
