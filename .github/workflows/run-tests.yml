@@ -13,6 +13,7 @@ jobs:
   build-toml-test:
     runs-on: ubuntu-latest
     outputs:
+      toml-test-project: https://github.com/BurntSushi/toml-test
       toml-test-version: ${{ steps.get-version.outputs.version }}
     steps:
       - uses: actions/setup-go@v3
@@ -241,5 +242,5 @@ jobs:
       - uses: actions/download-artifact@v3
       - name: Summarize tests
         run: |
-          echo "__toml-test version:__ ${{needs.build-toml-test.outputs.toml-test-version}}" | tee -a $GITHUB_STEP_SUMMARY
+          echo "__Test suite:__ ${{needs.build-toml-test.outputs.toml-test-project}} version ${{needs.build-toml-test.outputs.toml-test-version}}" | tee -a $GITHUB_STEP_SUMMARY
           python3 tools/summarize_test.py log-*/logfile | tee -a $GITHUB_STEP_SUMMARY
