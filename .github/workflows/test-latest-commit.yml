@@ -1,0 +1,236 @@
+name: test-latest-commit
+
+# Controls when the workflow will run
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+
+  # Build the toml-test suite.
+  build-toml-test:
+    runs-on: ubuntu-latest
+    outputs:
+      toml-test-project: https://github.com/BurntSushi/toml-test
+      toml-test-version: ${{ steps.get-version.outputs.version }}
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 'stable'
+      - name: Check-out https://github.com/BurntSushi/toml-test
+        run: git clone https://github.com/BurntSushi/toml-test.git
+      - name: Show version
+        id: get-version
+        working-directory: toml-test
+        run: |
+          git describe --tags --always
+          echo "version=$(git describe --tags --always)" >> $GITHUB_OUTPUT
+      - name: Build toml-test
+        working-directory: toml-test
+        run: go build ./cmd/toml-test
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: toml-test
+          path: toml-test/toml-test
+          retention-days: 2
+
+  test-burntsushi-toml:
+    runs-on: ubuntu-latest
+    needs: build-toml-test
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 'stable'
+      - uses: actions/download-artifact@v3
+        with:
+          name: toml-test
+      - name: Check-out https://github.com/BurntSushi/toml
+        run: git clone https://github.com/BurntSushi/toml.git burntsushi-toml
+      - name: Show version
+        working-directory: burntsushi-toml
+        run: |
+          git describe --tags --always
+          echo "parser_version=$(git describe --tags --always)" >> $GITHUB_ENV
+      - name: Build toml decoder
+        working-directory: burntsushi-toml
+        run: go build ./cmd/toml-test-decoder
+      - name: Test toml decoder
+        run: |
+          echo "Project: https://github.com/BurntSushi/toml" >> logfile
+          echo "Version: ${parser_version}" >> logfile
+          tools/toml-test-wrapper.sh -toml 1.0.0 burntsushi-toml/toml-test-decoder
+      - name: Upload artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: log-burntsushi-toml
+          path: logfile
+          retention-days: 2
+
+  test-python-tomlkit:
+    runs-on: ubuntu-latest
+    needs: build-toml-test
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Cache pip packages
+        id: cache-pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip
+      - uses: actions/download-artifact@v3
+        with:
+          name: toml-test
+      - name: Install poetry
+        run: pip install --upgrade poetry
+      - name: Check-out https://github.com/sdispater/tomlkit
+        run: git clone https://github.com/sdispater/tomlkit.git
+      - name: Show version
+        working-directory: tomlkit
+        run: |
+          git describe --tags --always
+          echo "parser_version=$(git describe --tags --always)" >> $GITHUB_ENV
+      - name: Build tomlkit
+        working-directory: tomlkit
+        run: poetry build
+      - name: Install tomlkit
+        # Note: tomlkit is already installed because poetry depends on it.
+        # We need --force-reinstall to replace the currently installed version.
+        run: pip install --force-reinstall tomlkit/dist/tomlkit-*.whl
+      - name: Show version
+        run: |
+          pip list
+          python --version
+      - name: Test toml decoder
+        run: |
+          echo "Project: https://github.com/sdispater/tomlkit" >> logfile
+          echo "Version: ${parser_version}" >> logfile
+          tools/toml-test-wrapper.sh -toml 1.0.0 python/tomlkit-decoder.py
+      - name: Upload artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: log-python-tomlkit
+          path: logfile
+          retention-days: 2
+
+  test-tomlplusplus:
+    runs-on: ubuntu-latest
+    needs: build-toml-test
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: toml-test
+      - name: Check-out https://github.com/marzer/tomlplusplus
+        run: git clone https://github.com/marzer/tomlplusplus.git
+      - name: Show version
+        working-directory: tomlplusplus
+        run: |
+          git describe --tags --always
+          echo "parser_version=$(git describe --tags --always)" >> $GITHUB_ENV
+      - name: Build toml decoder
+        working-directory: tomlplusplus
+        run: g++ -Iinclude -Wall -Wextra -Wpedantic -Werror -std=c++17 -O2 -fsanitize=undefined -fsanitize=address -o tt_decoder toml-test/tt_decoder.cpp
+      - name: Test toml decoder
+        run: |
+          echo "Project: https://github.com/marzer/tomlplusplus" >> logfile
+          echo "Version: ${parser_version}" >> logfile
+          tools/toml-test-wrapper.sh -toml 1.0.0 tomlplusplus/tt_decoder
+      - name: Upload artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: log-tomlplusplus
+          path: logfile
+          retention-days: 2
+
+  test-toml11:
+    runs-on: ubuntu-latest
+    needs: build-toml-test
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: toml-test
+      - name: Check-out https://github.com/ToruNiina/toml11
+        run: git clone https://github.com/ToruNiina/toml11.git
+      - name: Show version
+        working-directory: toml11
+        run: |
+          git describe --tags --always
+          echo "parser_version=$(git describe --tags --always)" >> $GITHUB_ENV
+      - name: Build toml decoder
+        run: g++ -Itoml11 -Wall -std=c++11 -O2 -fsanitize=undefined -fsanitize=address -o toml11_decoder cpp/toml11-decoder/toml11_decoder.cpp
+      - name: Test toml decoder
+        run: |
+          echo "Project: https://github.com/ToruNiina/toml11" >> logfile
+          echo "Version: ${parser_version}" >> logfile
+          tools/toml-test-wrapper.sh -toml 1.0.0 ./toml11_decoder
+      - name: Upload artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: log-toml11
+          path: logfile
+          retention-days: 2
+
+# TODO: build from latest commit
+  test-toml-rs:
+    runs-on: ubuntu-latest
+    needs: build-toml-test
+    steps:
+      - uses: actions/checkout@v3
+      - name: Cache cargo home directory
+        id: cache-cargo
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo
+          key: ${{ runner.os }}-cargo
+      - uses: actions/download-artifact@v3
+        with:
+          name: toml-test
+      - name: Update cargo dependencies
+        working-directory: rust/toml-rs-decoder
+        run: |
+          cargo update
+          cargo fetch
+      - name: Show version
+        working-directory: rust/toml-rs-decoder
+        run: |
+          cargo version
+          cargo tree
+          echo "parser_version=$(cargo tree --package toml --depth 0 | cut '-d ' -f2)" >> $GITHUB_ENV
+      - name: Build toml decoder
+        working-directory: rust/toml-rs-decoder
+        run: cargo build
+      - name: Test toml decoder
+        run: |
+          echo "Project: https://crates.io/crates/toml" >> logfile
+          echo "Version: ${parser_version}" >> logfile
+          tools/toml-test-wrapper.sh -toml 1.0.0 rust/toml-rs-decoder/target/debug/toml-rs-decoder
+      - name: Upload artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: log-toml-rs
+          path: logfile
+          retention-days: 2
+
+  make-summary:
+    runs-on: ubuntu-latest
+    needs: [build-toml-test, test-burntsushi-toml, test-python-tomlkit, test-tomlplusplus, test-toml11, test-toml-rs]
+    if: success() || failure()
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+      - name: Summarize tests
+        run: |
+          echo "__Test suite:__ ${{needs.build-toml-test.outputs.toml-test-project}} version ${{needs.build-toml-test.outputs.toml-test-version}}" | tee -a $GITHUB_STEP_SUMMARY
+          python3 tools/summarize_test.py log-*/logfile | tee -a $GITHUB_STEP_SUMMARY
