@@ -52,7 +52,7 @@ def main():
 
     toml_data = tomlkit.parse(toml_bytes)
 
-    tagged_data = tag(toml_data)
+    tagged_data = tag(toml_data.unwrap())
 
     json.dump(tagged_data, sys.stdout, indent=2)
     sys.stdout.write("\n")
