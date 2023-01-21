@@ -52,8 +52,8 @@ jobs:
       - name: Show version
         working-directory: burntsushi-toml
         run: |
-          git describe --tags --always
-          echo "parser_version=$(git describe --tags --always)" >> $GITHUB_ENV
+          git log -1 --format='%h'
+          echo "parser_version=$(git log -1 --format='%h')" >> $GITHUB_ENV
       - name: Build toml decoder
         working-directory: burntsushi-toml
         run: go build ./cmd/toml-test-decoder
@@ -94,8 +94,9 @@ jobs:
       - name: Show version
         working-directory: tomlkit
         run: |
-          git describe --tags --always
-          echo "parser_version=$(git describe --tags --always)" >> $GITHUB_ENV
+          git log -1 --format='%h'
+          python --version
+          echo "parser_version=$(git log -1 --format='%h')" >> $GITHUB_ENV
       - name: Build tomlkit
         working-directory: tomlkit
         run: poetry build
@@ -103,10 +104,6 @@ jobs:
         # Note: tomlkit is already installed because poetry depends on it.
         # We need --force-reinstall to replace the currently installed version.
         run: pip install --force-reinstall tomlkit/dist/tomlkit-*.whl
-      - name: Show version
-        run: |
-          pip list
-          python --version
       - name: Test toml decoder
         run: |
           echo "Project: https://github.com/sdispater/tomlkit" >> logfile
@@ -133,8 +130,8 @@ jobs:
       - name: Show version
         working-directory: tomlplusplus
         run: |
-          git describe --tags --always
-          echo "parser_version=$(git describe --tags --always)" >> $GITHUB_ENV
+          git log -1 --format='%h'
+          echo "parser_version=$(git log -1 --format='%h')" >> $GITHUB_ENV
       - name: Build toml decoder
         working-directory: tomlplusplus
         run: g++ -Iinclude -Wall -Wextra -Wpedantic -Werror -std=c++17 -O2 -fsanitize=undefined -fsanitize=address -o tt_decoder toml-test/tt_decoder.cpp
@@ -164,8 +161,8 @@ jobs:
       - name: Show version
         working-directory: toml11
         run: |
-          git describe --tags --always
-          echo "parser_version=$(git describe --tags --always)" >> $GITHUB_ENV
+          git log -1 --format='%h'
+          echo "parser_version=$(git log -1 --format='%h')" >> $GITHUB_ENV
       - name: Build toml decoder
         run: g++ -Itoml11 -Wall -std=c++11 -O2 -fsanitize=undefined -fsanitize=address -o toml11_decoder cpp/toml11-decoder/toml11_decoder.cpp
       - name: Test toml decoder
@@ -209,12 +206,9 @@ jobs:
           echo 'toml = { path = "../../toml-rs/crates/toml" }' >> Cargo.toml
       - name: Build toml decoder
         working-directory: rust/toml-rs-decoder
-        run: cargo build
-      - name: Show version
-        working-directory: toml-rs
         run: |
           cargo version
-          cargo tree
+          cargo build
       - name: Test toml decoder
         run: |
           echo "Project: https://github.com/toml-rs/toml" >> logfile
