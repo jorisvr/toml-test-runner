@@ -12,6 +12,8 @@ jobs:
   # Build the toml-test suite.
   build-toml-test:
     runs-on: ubuntu-latest
+    outputs:
+      toml-test-version: ${{ steps.get-version.outputs.version }}
     steps:
       - uses: actions/setup-go@v3
         with:
@@ -19,8 +21,11 @@ jobs:
       - name: Check-out https://github.com/BurntSushi/toml-test
         run: git clone https://github.com/BurntSushi/toml-test.git
       - name: Show version
+        id: get-version
         working-directory: toml-test
-        run: git describe --tags --always
+        run: |
+          git describe --tags --always
+          echo "version=$(git describe --tags --always)" >> $GITHUB_OUTPUT
       - name: Build toml-test
         working-directory: toml-test
         run: go build ./cmd/toml-test
@@ -229,10 +234,12 @@ jobs:
 
   make-summary:
     runs-on: ubuntu-latest
-    needs: [test-burntsushi-toml, test-python311-tomllib, test-python-tomlkit, test-tomlplusplus, test-toml11, test-toml-rs]
+    needs: [build-toml-test, test-burntsushi-toml, test-python311-tomllib, test-python-tomlkit, test-tomlplusplus, test-toml11, test-toml-rs]
     if: success() || failure()
     steps:
       - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
       - name: Summarize tests
-        run: python3 tools/summarize_test.py log-*/logfile | tee -a $GITHUB_STEP_SUMMARY
+        run: |
+          echo "__toml-test version:__ ${{needs.build-toml-test.outputs.toml-test-version}}" | tee -a $GITHUB_STEP_SUMMARY
+          python3 tools/summarize_test.py log-*/logfile | tee -a $GITHUB_STEP_SUMMARY
