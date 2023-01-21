@@ -1,5 +1,5 @@
 # This is a basic workflow to help you get started with Actions
-name: run-tests
+name: test-latest-release
 
 # Controls when the workflow will run
 on:
@@ -48,18 +48,22 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: toml-test
+      - name: Query latest release
+        run: echo "release_tag=$(tools/github-latest-release.py BurntSushi/toml)" >> $GITHUB_ENV
       - name: Check-out https://github.com/BurntSushi/toml
-        run: git clone https://github.com/BurntSushi/toml.git burntsushi-toml
+        run: git clone --branch "$release_tag" https://github.com/BurntSushi/toml.git burntsushi-toml
       - name: Show version
         working-directory: burntsushi-toml
-        run: git describe --tags --always
+        run: |
+          git describe --tags --always
+          echo "parser_version=$(git describe --tags --always)" >> $GITHUB_ENV
       - name: Build toml decoder
         working-directory: burntsushi-toml
         run: go build ./cmd/toml-test-decoder
       - name: Test toml decoder
         run: |
           echo "Project: https://github.com/BurntSushi/toml" >> logfile
-          echo "Version: $(cd burntsushi-toml; git rev-parse --short HEAD)" >> logfile
+          echo "Version: ${parser_version}" >> logfile
           tools/toml-test-wrapper.sh -toml 1.0.0 burntsushi-toml/toml-test-decoder
       - name: Upload artifact
         if: success() || failure()
@@ -118,11 +122,11 @@ jobs:
         run: |
           pip list
           python --version
-          echo "tomlkit_version=$(pip freeze | grep '^tomlkit==' | cut -d= -f3)" >> $GITHUB_ENV
+          echo "parser_version=$(pip freeze | grep '^tomlkit==' | cut -d= -f3)" >> $GITHUB_ENV
       - name: Test toml decoder
         run: |
           echo "Project: https://pypi.org/project/tomlkit/" >> logfile
-          echo "Version: ${tomlkit_version}" >> logfile
+          echo "Version: ${parser_version}" >> logfile
           tools/toml-test-wrapper.sh -toml 1.0.0 python/tomlkit-decoder.py
       - name: Upload artifact
         if: success() || failure()
@@ -141,19 +145,21 @@ jobs:
         with:
           name: toml-test
       - name: Query latest release
-        run: echo "version_tag=$(tools/github-latest-release.py marzer/tomlplusplus)" >> $GITHUB_ENV
+        run: echo "release_tag=$(tools/github-latest-release.py marzer/tomlplusplus)" >> $GITHUB_ENV
       - name: Check-out https://github.com/marzer/tomlplusplus
-        run: git clone --branch "$version_tag" https://github.com/marzer/tomlplusplus.git
+        run: git clone --branch "$release_tag" https://github.com/marzer/tomlplusplus.git
       - name: Show version
         working-directory: tomlplusplus
-        run: git describe --tags --always
+        run: |
+          git describe --tags --always
+          echo "parser_version=$(git describe --tags --always)" >> $GITHUB_ENV
       - name: Build toml decoder
         working-directory: tomlplusplus
         run: g++ -Iinclude -Wall -Wextra -Wpedantic -Werror -std=c++17 -O2 -fsanitize=undefined -fsanitize=address -o tt_decoder toml-test/tt_decoder.cpp
       - name: Test toml decoder
         run: |
           echo "Project: https://github.com/marzer/tomlplusplus" >> logfile
-          echo "Version: ${version_tag}" >> logfile
+          echo "Version: ${parser_version}" >> logfile
           tools/toml-test-wrapper.sh -toml 1.0.0 tomlplusplus/tt_decoder
       - name: Upload artifact
         if: success() || failure()
@@ -172,18 +178,20 @@ jobs:
         with:
           name: toml-test
       - name: Query latest release
-        run: echo "version_tag=$(tools/github-latest-release.py ToruNiina/toml11)" >> $GITHUB_ENV
+        run: echo "release_tag=$(tools/github-latest-release.py ToruNiina/toml11)" >> $GITHUB_ENV
       - name: Check-out https://github.com/ToruNiina/toml11
-        run: git clone --branch "$version_tag" https://github.com/ToruNiina/toml11.git
+        run: git clone --branch "$release_tag" https://github.com/ToruNiina/toml11.git
       - name: Show version
         working-directory: toml11
-        run: git describe --tags --always
+        run: |
+          git describe --tags --always
+          echo "parser_version=$(git describe --tags --always)" >> $GITHUB_ENV
       - name: Build toml decoder
         run: g++ -Itoml11 -Wall -std=c++11 -O2 -fsanitize=undefined -fsanitize=address -o toml11_decoder cpp/toml11-decoder/toml11_decoder.cpp
       - name: Test toml decoder
         run: |
           echo "Project: https://github.com/ToruNiina/toml11" >> logfile
-          echo "Version: ${version_tag}" >> logfile
+          echo "Version: ${parser_version}" >> logfile
           tools/toml-test-wrapper.sh -toml 1.0.0 ./toml11_decoder
       - name: Upload artifact
         if: success() || failure()
@@ -217,13 +225,14 @@ jobs:
         run: |
           cargo version
           cargo tree
+          echo "parser_version=$(cargo tree --package toml --depth 0 | cut '-d ' -f2)" >> $GITHUB_ENV
       - name: Build toml decoder
         working-directory: rust/toml-rs-decoder
         run: cargo build
       - name: Test toml decoder
         run: |
           echo "Project: https://crates.io/crates/toml" >> logfile
-          echo "Version: $(cd rust/toml-rs-decoder; cargo tree --package toml --depth 0 | cut "-d " -f2)" >> logfile
+          echo "Version: ${parser_version}" >> logfile
           tools/toml-test-wrapper.sh -toml 1.0.0 rust/toml-rs-decoder/target/debug/toml-rs-decoder
       - name: Upload artifact
         if: success() || failure()
