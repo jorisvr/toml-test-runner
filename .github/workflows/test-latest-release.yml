@@ -55,15 +55,15 @@ jobs:
       - name: Show version
         working-directory: burntsushi-toml
         run: |
+          git log -1 --format='%h'
           git describe --tags --always
-          echo "parser_version=$(git describe --tags --always)" >> $GITHUB_ENV
       - name: Build toml decoder
         working-directory: burntsushi-toml
         run: go build ./cmd/toml-test-decoder
       - name: Test toml decoder
         run: |
           echo "Project: https://github.com/BurntSushi/toml" >> logfile
-          echo "Version: ${parser_version}" >> logfile
+          echo "Version: ${release_tag}" >> logfile
           tools/toml-test-wrapper.sh -toml 1.0.0 burntsushi-toml/toml-test-decoder
       - name: Upload artifact
         if: success() || failure()
@@ -151,15 +151,15 @@ jobs:
       - name: Show version
         working-directory: tomlplusplus
         run: |
+          git log -1 --format='%h'
           git describe --tags --always
-          echo "parser_version=$(git describe --tags --always)" >> $GITHUB_ENV
       - name: Build toml decoder
         working-directory: tomlplusplus
         run: g++ -Iinclude -Wall -Wextra -Wpedantic -Werror -std=c++17 -O2 -fsanitize=undefined -fsanitize=address -o tt_decoder toml-test/tt_decoder.cpp
       - name: Test toml decoder
         run: |
           echo "Project: https://github.com/marzer/tomlplusplus" >> logfile
-          echo "Version: ${parser_version}" >> logfile
+          echo "Version: ${release_tag}" >> logfile
           tools/toml-test-wrapper.sh -toml 1.0.0 tomlplusplus/tt_decoder
       - name: Upload artifact
         if: success() || failure()
@@ -184,14 +184,14 @@ jobs:
       - name: Show version
         working-directory: toml11
         run: |
+          git log -1 --format='%h'
           git describe --tags --always
-          echo "parser_version=$(git describe --tags --always)" >> $GITHUB_ENV
       - name: Build toml decoder
         run: g++ -Itoml11 -Wall -std=c++11 -O2 -fsanitize=undefined -fsanitize=address -o toml11_decoder cpp/toml11-decoder/toml11_decoder.cpp
       - name: Test toml decoder
         run: |
           echo "Project: https://github.com/ToruNiina/toml11" >> logfile
-          echo "Version: ${parser_version}" >> logfile
+          echo "Version: ${release_tag}" >> logfile
           tools/toml-test-wrapper.sh -toml 1.0.0 ./toml11_decoder
       - name: Upload artifact
         if: success() || failure()
