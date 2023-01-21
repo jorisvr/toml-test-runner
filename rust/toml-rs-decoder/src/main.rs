@@ -6,8 +6,14 @@
  * Read a TOML file, decode it and write decoded data to stdout as tagged JSON
  * in the format expected by https://github.com/BurntSushi/toml-test
  *
- * Source code of this program is adapted from
- * https://github.com/toml-rs/toml/blob/main/crates/toml/examples/toml2json.rs
+ * This code is based on
+ *   https://github.com/toml-rs/toml/blob/main/crates/toml/examples/toml2json.rs
+ *   written by Ed Page.
+ *
+ * Modified by Joris van Rantwijk:
+ *  - Implement "tagging" of JSON output in the format expected by the
+ *    toml-test framework.
+ *  - Exit with non-zero status if the TOML parser encounters an error.
  */
 
 use std::env;
