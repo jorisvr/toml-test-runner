@@ -89,7 +89,44 @@ jobs:
           path: logfile
           retention-days: 2
 
-  test-marzer-tomlplusplus:
+  test-python-tomlkit:
+    runs-on: ubuntu-latest
+    needs: build-toml-test
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Cache pip packages
+        id: cache-pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip
+      - uses: actions/download-artifact@v3
+        with:
+          name: toml-test
+      - name: Install tomlkit
+        run: pip install --upgrade tomlkit
+      - name: Show version
+        run: |
+          pip list
+          python --version
+          echo "tomlkit_version=$(pip freeze | grep '^tomlkit==' | cut -d= -f3)" >> $GITHUB_ENV
+      - name: Test toml decoder
+        run: |
+          echo "Project: https://pypi.org/project/tomlkit/" >> logfile
+          echo "Version: ${tomlkit_version}" >> logfile
+          tools/toml-test-wrapper.sh -toml 1.0.0 python/tomlkit-decoder.py
+      - name: Upload artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: log-python-tomlkit
+          path: logfile
+          retention-days: 2
+
+  test-tomlplusplus:
     runs-on: ubuntu-latest
     needs: build-toml-test
     steps:
@@ -116,7 +153,37 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v3
         with:
-          name: log-marzer-tomlplusplus
+          name: log-tomlplusplus
+          path: logfile
+          retention-days: 2
+
+  test-toml11:
+    runs-on: ubuntu-latest
+    needs: build-toml-test
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: toml-test
+      - name: Query latest release
+        run: echo "version_tag=$(tools/github-latest-release.py ToruNiina/toml11)" >> $GITHUB_ENV
+      - name: Check-out https://github.com/ToruNiina/toml11
+        run: git clone --branch "$version_tag" https://github.com/ToruNiina/toml11.git
+      - name: Show version
+        working-directory: toml11
+        run: git describe --tags --always
+      - name: Build toml decoder
+        run: g++ -Itoml11 -Wall -std=c++11 -O2 -fsanitize=undefined -fsanitize=address -o toml11_decoder cpp/toml11-decoder/toml11_decoder.cpp
+      - name: Test toml decoder
+        run: |
+          echo "Project: https://github.com/ToruNiina/toml11" >> logfile
+          echo "Version: ${version_tag}" >> logfile
+          tools/toml-test-wrapper.sh -toml 1.0.0 ./toml11_decoder
+      - name: Upload artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: log-toml11
           path: logfile
           retention-days: 2
 
@@ -160,46 +227,9 @@ jobs:
           path: logfile
           retention-days: 2
 
-  test-python-tomlkit:
-    runs-on: ubuntu-latest
-    needs: build-toml-test
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      - name: Cache pip packages
-        id: cache-pip
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip
-      - uses: actions/download-artifact@v3
-        with:
-          name: toml-test
-      - name: Install tomlkit
-        run: pip install --upgrade tomlkit
-      - name: Show version
-        run: |
-          pip list
-          python --version
-          echo "tomlkit_version=$(pip freeze | grep '^tomlkit==' | cut -d= -f3)" >> $GITHUB_ENV
-      - name: Test toml decoder
-        run: |
-          echo "Project: https://pypi.org/project/tomlkit/" >> logfile
-          echo "Version: ${tomlkit_version}" >> logfile
-          tools/toml-test-wrapper.sh -toml 1.0.0 python/tomlkit-decoder.py
-      - name: Upload artifact
-        if: success() || failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: log-python-tomlkit
-          path: logfile
-          retention-days: 2
-
   make-summary:
     runs-on: ubuntu-latest
-    needs: [test-burntsushi-toml, test-python311-tomllib, test-marzer-tomlplusplus, test-toml-rs, test-python-tomlkit]
+    needs: [test-burntsushi-toml, test-python311-tomllib, test-python-tomlkit, test-tomlplusplus, test-toml11, test-toml-rs]
     if: success() || failure()
     steps:
       - uses: actions/checkout@v3
