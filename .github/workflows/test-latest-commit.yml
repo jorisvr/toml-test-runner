@@ -70,6 +70,32 @@ jobs:
           path: logfile
           retention-days: 2
 
+  test-python312-tomllib:
+    runs-on: ubuntu-latest
+    needs: build-toml-test
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '~3.12.0-alpha'
+      - uses: actions/download-artifact@v3
+        with:
+          name: toml-test
+      - name: Show Python version
+        run: python --version
+      - name: Test toml decoder
+        run: |
+          echo "Project: Python tomllib" >> logfile
+          echo "Version: $(python --version)" >> logfile
+          tools/toml-test-wrapper.sh -toml 1.0.0 python/tomllib-decoder.py
+      - name: Upload artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: log-python312-tomllib
+          path: logfile
+          retention-days: 2
+
   test-python-tomlkit:
     runs-on: ubuntu-latest
     needs: build-toml-test
@@ -224,7 +250,7 @@ jobs:
 
   make-summary:
     runs-on: ubuntu-latest
-    needs: [build-toml-test, test-burntsushi-toml, test-python-tomlkit, test-tomlplusplus, test-toml11, test-toml-rs]
+    needs: [build-toml-test, test-burntsushi-toml, test-python312-tomllib, test-python-tomlkit, test-tomlplusplus, test-toml11, test-toml-rs]
     if: success() || failure()
     steps:
       - uses: actions/checkout@v3
