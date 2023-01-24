@@ -19,7 +19,7 @@ import json
 import math
 import random
 import subprocess
-from typing import Any, Callable, NamedTuple
+from typing import Callable, NamedTuple
 
 import gen_random_toml
 
@@ -67,10 +67,10 @@ def _decode_tagged_bool(tag_value: str) -> bool:
             f"Invalid tagged boolean value {tag_value!a} in parser output")
 
 
-def untag(tagged_data: Any) -> Any:
+def untag(tagged_data: object) -> object:
     """Decode tagged JSON data."""
 
-    decoder_functions: dict[str, Callable[[str], Any]] = {
+    decoder_functions: dict[str, Callable[[str], object]] = {
         "string": str,
         "bool": _decode_tagged_bool,
         "integer": int,
@@ -122,8 +122,8 @@ def untag(tagged_data: Any) -> Any:
 
 
 def check_result(
-        parsed_data: Any,
-        gold_data: Any,
+        parsed_data: object,
+        gold_data: object,
         path: tuple[str, ...] = ()
         ) -> tuple[bool, str]:
     """Compare parser output to original data."""
@@ -181,6 +181,7 @@ def check_result(
                            f" while expecting {gold_type}")
 
         if isinstance(gold_data, float) and math.isnan(gold_data):
+            assert isinstance(parsed_data, float)
             if not math.isnan(parsed_data):
                 return (False, f"Key {path!a} has value {parsed_data}"
                                f" while expecting nan")
@@ -189,6 +190,7 @@ def check_result(
                 return (False, f"Key {path!a} has value {parsed_data!a}"
                                f" while expecting {gold_data!a}")
             if isinstance(gold_data, float):
+                assert isinstance(parsed_data, float)
                 parsed_sign = math.copysign(1, parsed_data)
                 gold_sign = math.copysign(1, gold_data)
                 if parsed_sign != gold_sign:
@@ -198,11 +200,15 @@ def check_result(
     return (True, "")
 
 
-def run_testcase(seed: int, runner: ParserRunner) -> TestResult:
+def run_testcase(
+        seed: int,
+        runner: ParserRunner,
+        normalize: bool
+        ) -> TestResult:
     """Run one testcase."""
 
     rng = random.Random(seed)
-    gen = gen_random_toml.TomlGenerator(rng)
+    gen = gen_random_toml.TomlGenerator(rng, normalize)
     (toml_doc, toml_data) = gen.gen_toml()
 
     (stdout_data, stderr_data, exit_status) = runner.run(toml_doc)
@@ -278,6 +284,7 @@ def run_tests(
         num_testcases: int,
         start_seed: int,
         dumpfail: bool,
+        normalize: bool,
         verbose: bool,
         quiet: bool
         ) -> int:
@@ -297,7 +304,7 @@ def run_tests(
 
     for i in range(num_testcases):
         seed = start_seed + i
-        result = run_testcase(seed=seed, runner=runner)
+        result = run_testcase(seed=seed, runner=runner, normalize=normalize)
 
         if result.success:
             num_pass += 1
@@ -366,6 +373,9 @@ description of the JSON format.""",
         "--dumpfail", action="store_true",
         help='dump failed testcases to files "failed_{seed}.toml/.out"')
     parser.add_argument(
+        "--no-normalize", action="store_true",
+        help="disable newline normalization in multi-line strings")
+    parser.add_argument(
         "-v", "--verbose", action="store_true",
         help="list all testcases, including passed tests")
     parser.add_argument(
@@ -388,6 +398,7 @@ description of the JSON format.""",
         num_testcases=args.n,
         start_seed=args.seed,
         dumpfail=args.dumpfail,
+        normalize=(not args.no_normalize),
         verbose=args.verbose,
         quiet=args.quiet)
     sys.exit(status)

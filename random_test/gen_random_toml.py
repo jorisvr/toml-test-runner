@@ -263,13 +263,19 @@ class TomlGenerator:
             """Return the TOML data as a dictionary."""
             return self._simplify_tables(self.data)
 
-    def __init__(self, rng: random.Random) -> None:
+    def __init__(self,
+                 rng: random.Random,
+                 normalize_ml_newlines: bool = True
+                 ) -> None:
         """Initialize the TOML generator.
 
         Parameters:
             rng: Random number generator instance.
+            normalize_ml_newlines: True to normalize newlines in
+                in multi-line strings.
         """
         self.rng = rng
+        self.normalize_ml_newlines = normalize_ml_newlines
 
     def gen_toml(self) -> tuple[str, _TableType]:
         """Generate a random valid TOML document.
@@ -727,8 +733,12 @@ class TomlGenerator:
             allow_quote = True
             r = self.rng.random()
             if r < self.PROB_ML_NEWLINE and val_chars and allow_whitespace:
-                doc_chars.append(self._gen_newline())
-                val_chars.append("\n")
+                s = self._gen_newline()
+                doc_chars.append(s)
+                if self.normalize_ml_newlines:
+                    val_chars.append("\n")
+                else:
+                    val_chars.append(s)
             elif r < self.PROB_ML_NEWLINE + self.PROB_ML_ESCAPED_NEWLINE:
                 doc_chars.append("\\" + self._gen_ws() + self._gen_newline())
                 for k in range(self.rng.randint(0, 2)):
@@ -767,8 +777,12 @@ class TomlGenerator:
             allow_quote = True
             r = self.rng.random()
             if r < self.PROB_ML_NEWLINE and val_chars:
-                doc_chars.append(self._gen_newline())
-                val_chars.append("\n")
+                s = self._gen_newline()
+                doc_chars.append(s)
+                if self.normalize_ml_newlines:
+                    val_chars.append("\n")
+                else:
+                    val_chars.append(s)
             else:
                 c = self._gen_literal_char()
                 doc_chars.append(c)
