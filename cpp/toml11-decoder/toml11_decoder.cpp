@@ -156,14 +156,15 @@ struct tagged_json_serializer
     std::string format_datetime(const toml::offset_datetime& v)
     {
         std::stringstream ss;
+        int offset_minutes = 60 * v.offset.hour + v.offset.minute;
         ss << format_datetime(v.date)
            << 'T'
            << format_datetime(v.time)
-           << (v.offset.hour < 0 ? '-' : '+')
+           << (offset_minutes < 0 ? '-' : '+')
            << std::setfill('0')
-           << std::setw(2) << std::abs(v.offset.hour)
+           << std::setw(2) << (std::abs(offset_minutes) / 60)
            << std::setw(1) << ':'
-           << std::setw(2) << std::abs(v.offset.minute);
+           << std::setw(2) << (std::abs(offset_minutes) % 60);
         return ss.str();
     }
 
