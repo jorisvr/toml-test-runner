@@ -12,6 +12,20 @@ It currently does not work as nicely as I had hoped.
 I don't expect to develop this much further. <br>
 I will probably not fix issues and not accept pull requests.
 
+### Random TOML documents
+
+This repository contains a tool that generates random valid TOML 1.0.0 files:
+[gen\_random\_toml.py](random_test/gen_random_toml.py) .
+
+This tool can be used to test a TOML parser on randomly generated input, thus exposing bugs that are triggered by obscure combinations of valid TOML syntax.
+
+It works and has found some actual parser bugs.
+However, the generated random TOML files look very strange and are difficult to read.
+When a generated file exposes a parser bug, it may still be difficult to figure out which _part_ of the file triggers the bug.
+
+Running a parser on random input only makes sense for parsers that already pass the complete `toml-test` suite.
+If the parser has known bugs, random input will probably just trigger those bugs again and again which is not very useful.
+
 ## Test results for TOML 1.0.0 compliance
 
 The tables below were manually copied from workflow runs.
