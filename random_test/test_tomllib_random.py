@@ -59,7 +59,7 @@ class TestRandomValid(unittest.TestCase):
 
     def _run_test(self, test_index):
         rng = random.Random(test_index)
-        gen = gen_random_toml.TomlGenerator(rng)
+        gen = gen_random_toml.TomlGenerator(rng, allow_big_int=True)
         (toml_doc, gold_value) = gen.gen_toml()
 
         # Test loading TOML from string.

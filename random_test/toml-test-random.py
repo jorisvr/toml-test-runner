@@ -203,12 +203,13 @@ def check_result(
 def run_testcase(
         seed: int,
         runner: ParserRunner,
-        normalize: bool
+        normalize: bool,
+        allow_big_int: bool
         ) -> TestResult:
     """Run one testcase."""
 
     rng = random.Random(seed)
-    gen = gen_random_toml.TomlGenerator(rng, normalize)
+    gen = gen_random_toml.TomlGenerator(rng, normalize, allow_big_int)
     (toml_doc, toml_data) = gen.gen_toml()
 
     (stdout_data, stderr_data, exit_status) = runner.run(toml_doc)
@@ -285,6 +286,7 @@ def run_tests(
         start_seed: int,
         dumpfail: bool,
         normalize: bool,
+        allow_big_int: bool,
         verbose: bool,
         quiet: bool
         ) -> int:
@@ -304,7 +306,11 @@ def run_tests(
 
     for i in range(num_testcases):
         seed = start_seed + i
-        result = run_testcase(seed=seed, runner=runner, normalize=normalize)
+        result = run_testcase(
+            seed=seed,
+            runner=runner,
+            normalize=normalize,
+            allow_big_int=allow_big_int)
 
         if result.success:
             num_pass += 1
@@ -376,6 +382,9 @@ description of the JSON format.""",
         "--no-normalize", action="store_true",
         help="disable newline normalization in multi-line strings")
     parser.add_argument(
+        "--allow-big-int", action="store_true",
+        help="test integer values exceeding int64")
+    parser.add_argument(
         "-v", "--verbose", action="store_true",
         help="list all testcases, including passed tests")
     parser.add_argument(
@@ -399,6 +408,7 @@ description of the JSON format.""",
         start_seed=args.seed,
         dumpfail=args.dumpfail,
         normalize=(not args.no_normalize),
+        allow_big_int=args.allow_big_int,
         verbose=args.verbose,
         quiet=args.quiet)
     sys.exit(status)

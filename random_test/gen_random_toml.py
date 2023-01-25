@@ -61,7 +61,8 @@ class TomlGenerator:
     MEAN_ARRAY_ELEMS    = 2
     MAX_ARRAY_ELEMS     = 10
     MAX_DOTTED_LEN      = 3
-    MAX_INT_VALUE       = 2**80
+    MAX_INT_VALUE       = 2**63 - 1
+    MAX_BIG_INT_VALUE   = 2**80
 
     PROB_COMMENT        = 0.5
     PROB_EXPR_KEYVAL    = 0.7
@@ -265,7 +266,8 @@ class TomlGenerator:
 
     def __init__(self,
                  rng: random.Random,
-                 normalize_ml_newlines: bool = True
+                 normalize_ml_newlines: bool = True,
+                 allow_big_int: bool = False
                  ) -> None:
         """Initialize the TOML generator.
 
@@ -273,9 +275,11 @@ class TomlGenerator:
             rng: Random number generator instance.
             normalize_ml_newlines: True to normalize newlines in
                 in multi-line strings.
+            allow_big_int: True to test integer values exceeding int64.
         """
         self.rng = rng
         self.normalize_ml_newlines = normalize_ml_newlines
+        self.allow_big_int = allow_big_int
 
     def gen_toml(self) -> tuple[str, _TableType]:
         """Generate a random valid TOML document.
@@ -815,8 +819,12 @@ class TomlGenerator:
         oct-int = "0o" digit0-7 *( digit0-7 / "_" digit0-7 )
         bin-int = "0b" digit0-1 *( digit0-1 / "_" digit0-1 )
         """
+        maxval = self.MAX_INT_VALUE
+        if self.allow_big_int:
+            maxval = self.MAX_BIG_INT_VALUE
+
         r = self.rng.random()
-        val = round(math.exp(r**2 * math.log(self.MAX_INT_VALUE + 1)) - 1)
+        val = round(math.exp(r**2 * math.log(maxval + 1)) - 1)
 
         formats: list[tuple[str, Callable[[int], str], bool, int]] = [
             ("", str, False, 1),
